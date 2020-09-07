@@ -1,0 +1,47 @@
+---
+title: "01_intro_Lo_example"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Lo example
+```{r}
+library(tidyverse)
+library(RCurl)
+```
+Lo asked me what is the expresion of some genes she is interested in on the cells I work with. This is the array of genes:
+```{r}
+Lo<-c("ENSG00000265096",
+"ENSG00000273015",
+"ENSG00000243701",
+"ENSG00000188242",
+"ENSG00000246582",
+"ENSG00000189079",
+"ENSG00000173918")
+```
+I can read my txt file with the function `read.delim`. You can run `read.delim` on the console and see the help for this function. 
+```{r}
+x <- getURL("https://raw.githubusercontent.com/demar01/R-NA/master/slides/01-intro/data/WCL_RNA.txt")
+WCL_RNA<- read.delim(text = x, sep = "\t")
+```
+
+Doing some data wrangling using `filter` and `select` functions I can see if those genes are in my data and plot the results with ggplot2.
+
+```{r}
+WCL_RNA %>% 
+filter(T..GeneID %in% Lo ) %>%  #filter Lo's gene from big data
+ select(- T..UniProtKB.Gene.Name.ID,-T..GeneID,-T..Transcript.type) %>% #keep only log2 values
+  pivot_longer(-T..Gene.name,names_to="cell",values_to="log2") %>% #to put it in a tidy format 
+  mutate_if(is.character,as_factor) %>% #in tidy chr need to be transform to factors
+  ggplot(aes(x=cell,y=log2, fill= T..Gene.name,scales))+  #what is x and y in your plot
+  geom_col()+  #what time of plot
+  facet_wrap(~ T..Gene.name,scales="free") + #one plot per gene
+  theme(legend.position = "none") #we dont need a legend
+  
+  
+```
+
+
