@@ -51,7 +51,7 @@ __Mardakhlan__
 ## Logistics
 
 - Everything in one place: [https://bit.ly/3i3zzX0](https://bit.ly/3i3zzX0)
-- RStudio Cloud: [rstd.io/dsbox-cloud](https://rstd.io/dsbox-cloud)
+- RStudio Cloud: [https://rstudio.cloud/spaces/86874/project/1593858](https://rstudio.cloud/spaces/86874/project/1593858)
 - Asking for help: Type in chat and feel free to interrupt 
 
 ---

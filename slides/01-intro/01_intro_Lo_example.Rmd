@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(RCurl)
 ```
+
 Lo asked me what is the expresion of some genes she is interested in on the cells I work with. This is the array of genes:
 ```{r}
 Lo<-c("ENSG00000265096",
@@ -37,11 +38,47 @@ filter(T..GeneID %in% Lo ) %>%  #filter Lo's gene from big data
   pivot_longer(-T..Gene.name,names_to="cell",values_to="log2") %>% #to put it in a tidy format 
   mutate_if(is.character,as_factor) %>% #in tidy chr need to be transform to factors
   ggplot(aes(x=cell,y=log2, fill= T..Gene.name,scales))+  #what is x and y in your plot
-  geom_col()+  #what time of plot
-  facet_wrap(~ T..Gene.name,scales="free") + #one plot per gene
-  theme(legend.position = "none") #we dont need a legend
-  
+  geom_col() +  #what time of plot
+  facet_wrap(~ T..Gene.name,scales="free")+ #one plot per gene
+  theme(legend.position = "none") +
+  xlab("MCF10A progression cell lines") +
+  ylab("log2 expression relative to parental")+
+  theme_classic()
+  #we dont need a legend
   
 ```
 
+
+```{r}
+simple_function <- function(dataset, col_name, value){
+  col_name <- enquo(col_name)
+  dataset %>%
+    filter((!!col_name) == value) %>%
+    summarise(mean_cyl = mean(cyl))
+}
+simple_function(mtcars, am, 1)
+```
+
+Imagine that Lo is now interested in other list of genes. Or maybe she wants to see what is the expression of those genes in a different dataset. We can put the code we generated inside a function and we can plot the result of additional searches using the function. 
+```{r}
+Lo_plot_function <- function(dataset, genes){
+  dataset %>%
+    filter(T..GeneID %in% genes) %>% 
+ select(- T..UniProtKB.Gene.Name.ID,-T..GeneID,-T..Transcript.type) %>% 
+  pivot_longer(-T..Gene.name,names_to="cell",values_to="log2") %>% 
+  mutate_if(is.character,as_factor) %>% 
+    
+ggplot(aes(x=cell,y=log2, fill= T..Gene.name,scales))+  #what is x and y in your plot
+  geom_col() +
+    facet_wrap(~ T..Gene.name,scales="free")+ 
+  theme(legend.position = "none") +
+  xlab("MCF10A progression cell lines") +
+  ylab("log2 expression relative to parental")+
+  theme_classic()
+}
+```
+
+```{r}
+Lo_plot_function(WCL_RNA,Lo)
+```
 
