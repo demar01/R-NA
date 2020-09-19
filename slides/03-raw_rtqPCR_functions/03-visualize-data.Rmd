@@ -1,0 +1,78 @@
+---
+title: "RTqPCR: Impot, wrangling, visualizing and stats <br> `r emo::ji('bar_chart')`"
+output:
+  xaringan::moon_reader:
+    css: ["../slides-style.css", "../xaringan-themer.css"]
+    lib_dir: libs
+    nature:
+      highlightStyle: solarized-light
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: "16:9"
+      slideNumberFormat: |
+        <div class="progress-bar-container">
+          <div class="progress-bar" style="width: calc(%current% / %total% * 100%);">
+          </div>
+        </div>
+---
+
+```{r child = "../setup.Rmd"}
+```
+
+```{r packages, echo=FALSE, message=FALSE, warning=FALSE}
+library(emo)
+library(tidyverse)
+library(ggpubr)
+library(readxl)
+```
+
+class: middle
+
+# Import data and see format
+
+---
+
+## Much of data comes in an readxl format 
+
+You want to understand the function to import readxl. But dont worry is fairly easy! 
+```{r echo=FALSE, out.width="70%"}
+knitr::include_graphics("img/readxl_heck.png")
+```
+---
+
+class: middle
+
+# Get data in a tidy format
+
+Remember, getting a tidy format is one on the key steps of data wrangling.
+
+```{r echo=FALSE, out.width="70%"}
+knitr::include_graphics("img/tidy.png")
+```
+---
+class: middle
+
+# Visualise data
+
+Remember, ggplot has 3 main layers for plotting
+
+```{r echo=FALSE, out.width="70%"}
+knitr::include_graphics("img/grammar-of-graphics.png")
+```
+---
+
+class: middle
+
+# Stats
+
+Remember, R is such a powerful language because there are a lot of packages/functions writen to do stats 
+
+```{r echo=FALSE, out.width="40%"}
+knitr::include_graphics("img/ggpubr.png")
+```
+---
+
+class: middle
+
+# Let's dive in some RT-qPCR Kali gave me!
+---

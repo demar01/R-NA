@@ -74,6 +74,7 @@ ggplot(aes(x=cell,y=log2, fill= T..Gene.name,scales))+  #what is x and y in your
   theme(legend.position = "none") +
   xlab("MCF10A progression cell lines") +
   ylab("log2 expression relative to parental")+
+    ylim(-20,5)+
   theme_classic()
 }
 ```

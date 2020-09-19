@@ -1,0 +1,160 @@
+---
+title: "03_function_imput_raw_rtqpcr"
+author: "Maria Dermit"
+date: "13/10/2020"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Loading libraries
+```{r}
+library(tidyverse)
+library(readxl) #this package let us read an excel file into R
+library(here) #this package let us organise files in path easily
+```
+
+### Reading the excel file
+
+```{r}
+rtpcr_data_raw <- read_excel(here("slides","03-raw_rtqPCR_functions","data", "C1_HCT116plus_180820rep_data.xls"),
+sheet = 1, na = "Undetermined",
+skip = 7, n_max = 72)
+```
+
+Kalis RT-qPCR data consist of two experiements:\
+1:\
+Cells max\
+Con si (control) \
+C1 si\
+2:\
+Cells max \ 
+LNA A (control)\ 
+LNA 1\
+LNA 2\ 
+
+She did these two experiments with two sets of primers: 2-3 primers and C1 protein. Her housekeeping control are two: GAPDH and RPS18 and she usually does the mean of the two for the delta Ct.
+
+So in the `rtpcr_data_raw` data that we read the columns we can select the columns we   are  interested in:
+```{r}
+rtpcr_data_mean_CT <- rtpcr_data_raw %>% 
+  select( "Sample"="Sample Name", "Target"="Target Name", "CT" = "Cт") %>% 
+  arrange(Sample, Target) %>% 
+ filter(!(Sample=="LNA 1" & Target=="GAPDH" & CT >20)) %>% 
+  group_by(Sample,Target) %>% 
+  summarise(meanCT=mean(CT)) %>% 
+  spread(Target,meanCT) %>% 
+  gather(Target, meanCT, -Sample, -GAPDH,-RPS18) %>% 
+   group_by(Sample)%>%
+   mutate(housekeeping=(GAPDH+RPS18)/2) %>% 
+  select(-GAPDH,-RPS18)
+```
+
+This is a relative complex number of steps so we could automate them writing a function like so:
+```{r}
+get_CT_housekeeping <- function(x,mytarget,mythreshold){
+  x %>% 
+    if(){
+      
+    }
+  select( "Sample" = "Sample Name", "Target" = "Target Name", "CT" = "Cт") %>%
+  arrange(Sample, Target) %>% 
+  filter(!(Target==mytarget)) %>% 
+  filter(!(Sample=="LNA 1" & Target==mytarget & CT >mythreshold)) %>% 
+  group_by(Sample,Target) %>% 
+  summarise(meanCT=mean(CT)) %>% 
+  spread(Target,meanCT) %>% 
+  gather(Target, meanCT, -Sample, -GAPDH,-RPS18) %>% 
+  group_by(Sample)%>%
+  mutate(housekeeping=(GAPDH+RPS18)/2) %>% 
+  select(-GAPDH,-RPS18)
+}
+```
+And then we input our `rtpcr_data_raw` into the function like so:
+```{r}
+rtpcr_data_mean_CT <- get_CT_housekeeping(rtpcr_data_raw,"C1 protein",mythreshold=20)
+
+```
+
+There were some values that came as "Undetermined" in the raw data, we can transform those to CT value 40 (aka high CT values).
+```{r}
+rtpcr_data_mean_CT$meanCT[is.na(rtpcr_data_mean_CT$meanCT)]=40
+```
+
+
+### Calculate Δ Ct
+```{r}
+rtpcr_data_deltaCT <- rtpcr_data_mean_CT %>%
+  mutate(deltaCT = meanCT - housekeeping)
+```
+
+Control samples are Con si. We  need to calculate the mean ΔCt of the two different targets (2_3 & C1) that Kali tested.
+```{r}
+#Calculate ΔΔCt   
+Control_average_2_3<- rtpcr_data_deltaCT %>%
+  as_tibble() %>% 
+  mutate_if(is.character,as.factor) %>% 
+  filter(str_detect(Sample, c("Con si","LNA A")) &     str_detect(Target, "2-3")) %>%
+   pull(deltaCT)
+
+Control_average_C1<- rtpcr_data_deltaCT %>%
+  as_tibble() %>% 
+  mutate_if(is.character,as.factor) %>% 
+  filter(str_detect(Sample, c("Con si","LNA A")) & str_detect(Target, "protein")) %>%
+   pull(deltaCT)
+
+```
+
+We can now calculate ΔΔCt:
+```{r}
+deltadeltaCT <- rtpcr_data_deltaCT %>%
+  mutate(ddCT = case_when(
+    Target == "C1 2-3" & str_detect(Sample,"LNA") ~
+      deltaCT -     Control_average_2_3[2],
+     Target == "C1 2-3" & str_detect(Sample,"LNA", negate=TRUE) ~        deltaCT - Control_average_2_3[1],
+    Target == "C1 protein" & str_detect(Sample,"LNA") ~
+      deltaCT - Control_average_C1[2],
+  Target == "C1 protein" & str_detect(Sample,"LNA", negate=TRUE) ~
+      deltaCT - Control_average_C1[1]
+  ))
+```
+
+And we can calculate expression values:
+
+```{r}
+expression_values<- deltadeltaCT %>%
+  mutate(expression = 2^(-ddCT)) %>% 
+  mutate_if(is.character,as.factor)
+#Creating this column to short column order in plot
+expression_values$rep=c(1:12)
+```
+
+We can now plot the expression values
+```{r}
+expression_plot<-expression_values %>% 
+    arrange(-rep) %>% 
+    ggplot(aes(x =  fct_inorder(Sample), y = expression, fill = Target)) +
+    geom_col(position = position_dodge(1))+
+  xlab("Sample")
+```
+
+We could save this plot. Initially we create a folder inside our session 3:
+
+```{r}
+suppressWarnings(dir.create(paste0(paste0(here(),"/slides","/03-raw_rtqPCR_functions"),"/plots")))
+```
+
+And then we can save the plot with:
+
+```{r}
+expression_plot+  ggsave(here("slides", "03-raw_rtqPCR_functions","plots","expression_plot.png"))
+```
+
+### Concluding remarks
+
+There is anoter RT-qPCR in the `data` folder of this session called `HCT116plus_RNAi_LNA_180920_data.xls`. Could you represent the expresion values of this experiment? Could you write additional functinos to further automate RT-qPCR representation? 
+
+

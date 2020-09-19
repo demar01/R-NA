@@ -1,0 +1,90 @@
+---
+title: "02_wrangling_visualising_rtqpcr"
+author: "Maria Dermit"
+date: "14/09/2020"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Lo example
+```{r}
+library(tidyverse)
+library(readxl) #this package let us read an excel file into R
+library(here)
+library(ggpubr)
+library(emo)
+```
+
+Read the excel file
+
+```{r}
+Kali_rtpcr_data_raw <- read_xlsx(here("slides","02-wrangle_visualise_rtqPCR","data", "qPCR_HCT116plus_n3_KG.xlsx")
+                                 ,skip=1,col_names = TRUE,
+sheet = 1) 
+Kali_rtpcr_data_raw 
+Kali_rtpcr_data<-
+  Kali_rtpcr_data_raw %>% select(1,2,4,5,7,8) %>% drop_na()
+```
+
+This is definitely no a Tidy data! To get to tidy data we need:
+1) Column with exp condition
+2) Colum with relative expression
+3) Column with replicate 
+4) Comparisons
+
+There are several ways we could format the data to get to that point. Since this is a pretty untidy but small dataset One lazy way would be to reate a tibble from scratch:
+
+```{r}
+Kali_tibble_2_3<-
+Kali_rtpcr_data %>% select(1,3,5) %>% pivot_longer(everything(),names_to = "condition",values_to="expression") %>% mutate(replicate=rep(c(1,2,3),5)) %>% 
+  select(-condition)
+
+Kali_tibble_1<-
+Kali_rtpcr_data %>% select(2,4,6) %>% pivot_longer(everything(),names_to = "nonneeded",values_to="condition") %>% select(-nonneeded)
+
+
+groupping<-c(rep(1,6),rep(2,9)) 
+Kali_table<-cbind(Kali_tibble_1,Kali_tibble_2_3,groupping)
+Kali_tibble<-Kali_table %>% as_tibble() %>% 
+    mutate(condition = case_when(
+      condition=="LNA A" ~ "A LNA",
+       condition=="C1 si" ~ "si C1",
+      TRUE~condition)) %>% 
+      
+  mutate_if(is.character,as.factor)
+```
+Kali_tibble is a tidy tibble! `r emo::ji("smile")`
+
+
+```{r}
+Kali_tibble_LNA<-
+  Kali_tibble %>% filter(groupping==2) 
+
+Kali_tibble_C<-
+  Kali_tibble %>% filter(groupping==1)
+
+```
+
+```{r}
+Kali_tibble_C %>% 
+  mutate_if(is.character,as.factor) %>% 
+ ggboxplot( x = "condition", y = "expression",
+          color = "condition", palette = "jco",
+          add = "jitter")+ylim(0,2)+  
+  stat_compare_means(method = "t.test",label.y = 1.5)
+  
+
+Kali_tibble_LNA %>% 
+  mutate_if(is.character,as.factor) %>% 
+ ggboxplot( x = "condition", y = "expression",
+          color = "condition", palette = "jco",
+          add = "jitter")+ylim(0,2)+  
+    stat_compare_means(label = "p.signif", method = "t.test",
+                       ref.group = "A LNA") 
+```
+
+
