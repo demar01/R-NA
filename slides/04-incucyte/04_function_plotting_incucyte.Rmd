@@ -153,16 +153,16 @@ Lets plot this! Remember that in lesson 2 we learnt the order of facet:
 ```{r}
 all_incucyte_data %>%  #data
 ggplot(aes(x=elaps, y=mean_confluency,color = exp, group=exp))+ #aesthetic 
- geom_line(size=2) + #geom
-  geom_point(size=2)+ #geom
+ geom_line(size=1) + #geom
+  geom_point(size=4)+ #geom
  scale_colour_manual(values=c(C1.si="#000066",Con.si="#663399",RNAiMAX="#339999")) +
 
-  geom_errorbar(aes(ymin=mean_confluency, ymax=mean_confluency+sem_confluency),         width=0.2,  position=position_dodge(0.05)) + #geom
+  geom_errorbar(aes(ymin=mean_confluency, ymax=mean_confluency+sem_confluency),         width=0.5,  position=position_dodge(0.05)) + #geom
   facet_wrap(~condition)+ #facets
   ylim(0,100)+  #coord
   xlab("Time (h)")+  #coord
     ylab("Confluency (%)") + #coord+
-    theme_minimal()+ #theme
+    theme_classic()+ #theme
     theme(strip.text.x = element_text(size=10))+
 theme(axis.text.x = element_text(size =10),
 axis.text.y = element_text(size =10),
@@ -174,7 +174,7 @@ legend.position = "top")
   
 ```
 
-We can calculate when the difference in the plus data start to be different.
+We can calculate when the confluence starts to be different across different treatment:
 ```{r}
 plus_raw %>% 
  pivot_longer(everything(),names_to="exp", values_to="values") %>% 
@@ -191,7 +191,7 @@ plus_raw %>%
   filter(p_value<0.05)
 ```
 
-As early as 50 h the differences start to be different. We can add this to the data, annotating the plot. 
+As early as 50 h the confluence % start to be different. We can annotate the plot to show this difference. Note that we have done quaick t.test across all timepoints.   
 
 ```{r}
 all_incucyte_data %>%  #data
@@ -214,7 +214,7 @@ axis.title.y = element_text(size =10),
 legend.title =  element_text(size =0),
 legend.text = element_text(size = 10),
 legend.position = "top")+
-  annotate("text", x = 51, y = 5, label = "*", size=8, color="#000066") +
+  annotate("text", x = 51, y = 5, label = "*", size=8, color="#000066")+
   ggsave(here::here("slides","04-incucyte", "plots", "plus.png"))
 
 ```

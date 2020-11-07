@@ -1,0 +1,109 @@
+---
+title: "05_correlation_replicates_Proteomics"
+author: "Maria Dermit"
+date: "10/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Loading libraries
+```{r}
+library(tidyverse)
+# install.packages("corrplot")
+library(corrplot) #to easily add statistical summaries in ggplot-like plots
+library(here) #to add paths
+#install.packages("Hmisc")
+library(Hmisc) # for rcorr
+#install.packages("broom")
+library(broom) #for tidiness
+```
+### Reading data. 
+These are proteomics data where I have 2 technical replicates per condition and two sample types- bodies and protrusions. I expect a high correlation across technical replicates. 
+
+```{r}
+proteinGroups_raw<-read_delim(here("slides","05-correlation","data", "proteinGroups_2h_methodpaper.txt"), delim="\t")
+names(proteinGroups_raw)
+```
+
+This is the output of Maxquant, that comes with lots of information about peptides. Here I am selecting columns I want:
+```{r}
+proteinGroups<-proteinGroups_raw %>%
+    select(7,43:46,61:63) %>% 
+    filter(is.na(`Only identified by site`) & is.na(Reverse),is.na(`Potential contaminant`)) %>% 
+select(starts_with("Reporter")) %>% 
+  rename(Body_R1="Reporter intensity corrected 1 1",
+         Body_R2= "Reporter intensity corrected 2 1",
+         Prot_R1="Reporter intensity corrected 1 2",
+         Prot_R2= "Reporter intensity corrected 2 2")
+```
+
+
+### EDA
+Initially we want to check whether these data follow a normal distribution. 
+```{r}
+summary(proteinGroups)
+```
+
+We can show the distribution tor example for the first sample: 
+```{r}
+proteinGroups %>% 
+  ggplot(aes(x=Body_R1))+geom_histogram()
+```
+Is not normally distributed. We need to log the data to get a normal distribution.
+
+```{r}
+proteinGroups_log<-proteinGroups %>% log2()
+```
+
+```{r}
+proteinGroups_log %>% 
+  ggplot(aes(x=Body_R1))+geom_histogram()
+```
+
+We need to subtract the median to center distribution to 0. This is standard procedure when we are analyzing proteomics data.
+```{r}
+colmed<-apply(proteinGroups_log,2,median)
+final_prot<-proteinGroups_log - colmed
+```
+All samples are centered to 0.
+
+We can plot all the the columns/samples and check that they are all normally distributed. 
+```{r}
+final_prot%>%
+  gather() %>%                             # Convert to key-value 
+  ggplot(aes(value)) +                     # Plot the values
+    facet_wrap(~ key, scales = "free") +   # In separate panels
+    geom_density() 
+```
+They all seem to follow a normal distribution.
+
+
+Now we can check correlation
+```{r}
+cor.test(proteinGroups_log$Body_R1, proteinGroups_log$Body_R2, method="pearson")
+```
+What is the problem? Hint there are -Inf values in the data.  
+
+```{r}
+lix <- is.infinite(proteinGroups_log$Body_R1) | is.infinite(proteinGroups_log$Body_R2) 
+cor.test(proteinGroups_log$Body_R1[!lix], proteinGroups_log$Body_R2[!lix], method="pearson")
+```
+This works, but it does output a non-tidy format
+
+```{r}
+as.matrix(cbind(proteinGroups_log$Body_R1[!lix], proteinGroups_log$Body_R2[!lix])) %>% 
+    rcorr(type = "pearson")  %>% 
+  tidy()
+```
+There is a high correlation and no significant difference between both samples. 
+We can also use the `corrplot` function to  
+```{r}
+lix <- is.infinite(proteinGroups_log$Body_R1) | is.infinite(proteinGroups_log$Body_R2)| is.infinite(proteinGroups_log$Prot_R1) | is.infinite(proteinGroups_log$Prot_R2)
+res <- cor(proteinGroups_log[-which(lix),],method = c("pearson"))
+library(corrplot)
+corrplot(res, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45)
+```
