@@ -45,4 +45,4 @@ Watch this space for schedule
 
 | Time        | Activity                                                                                 |
 | :---------- | :--------------------------------------------------------------------------------------- |
-| 5:30 - 6:30 | [06 Tidyverse](https://demar01.github.io/R-NA/slides/06-Tidyverse/06-TydiverseTrip.html) |
+| 5:30 - 6:30 | [06 Tidyverse](https://github.com/demar01/R-NA/blob/master/slides/06-Tidyverse/06-TidyverseTrip.html) |
